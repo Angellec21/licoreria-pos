@@ -1,0 +1,70 @@
+:root {
+  --fondo: #f7f5f2;
+  --texto: #1f1b16;
+  --primario: #7a1f2b;
+  --borde: #ddd5cb;
+  --alerta: #fff4d6;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  color: var(--texto);
+  background: var(--fondo);
+}
+
+body {
+  margin: 0;
+}
+
+.contenedor {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.encabezado h1 {
+  margin: 0;
+  color: var(--primario);
+}
+
+.encabezado p {
+  margin: 0.25rem 0 1rem;
+}
+
+.alerta {
+  background: var(--alerta);
+  border: 1px solid #e8c868;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.buscador {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+.buscador input {
+  font-size: 1rem;
+  padding: 0.6rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+.tabla th,
+.tabla td {
+  text-align: left;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+@media (max-width: 600px) {
+  .tabla th:nth-child(3),
+  .tabla td:nth-child(3) {
+    display: none;
+  }
+}
