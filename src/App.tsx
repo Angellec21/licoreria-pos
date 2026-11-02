@@ -1,64 +1,53 @@
-import { useMemo, useState } from 'react';
-import { crearInventarioDeEjemplo } from './data/catalogo.ts';
+import { useState } from 'react';
 import { formatearBs } from './domain/dinero.ts';
+import { AperturaTurno } from './ui/AperturaTurno.tsx';
+import { CierreTurno } from './ui/CierreTurno.tsx';
+import { PantallaCobro } from './ui/PantallaCobro.tsx';
+import { VistaInventario } from './ui/VistaInventario.tsx';
+import { usePuntoDeVenta } from './ui/usePuntoDeVenta.ts';
+
+type Vista = 'cobro' | 'inventario' | 'cierre';
+const VISTAS: { id: Vista; nombre: string }[] = [
+  { id: 'cobro', nombre: 'Cobro' },
+  { id: 'inventario', nombre: 'Inventario' },
+  { id: 'cierre', nombre: 'Cierre de caja' },
+];
 
 export default function App() {
-  const inventario = useMemo(() => crearInventarioDeEjemplo(), []);
-  const [busqueda, setBusqueda] = useState('');
-  const productos = busqueda.trim() ? inventario.buscar(busqueda) : inventario.listar();
-  const alertas = inventario.alertasStockMinimo();
+  const pos = usePuntoDeVenta();
+  const [vista, setVista] = useState<Vista>('cobro');
+  const turno = pos.caja.turnoActual();
+  const resumen = turno ? pos.caja.resumenTurno() : undefined;
 
   return (
     <main className="contenedor">
-      <header className="encabezado">
-        <h1>Licorería POS</h1>
-        <p>Catálogo y stock · venta por unidad y por caja</p>
+      <header className="encabezado no-imprimir">
+        <div>
+          <h1>Licorería POS</h1>
+          <p>
+            {turno
+              ? `Turno ${turno.id} · ${turno.cajero} · ${resumen?.cantidadVentas ?? 0} ventas · ${formatearBs(resumen?.total ?? 0)}`
+              : 'Caja cerrada'}
+          </p>
+        </div>
+        <nav aria-label="Secciones">
+          {VISTAS.map((v) => (
+            <button
+              key={v.id}
+              type="button"
+              className={vista === v.id ? 'pestana activa' : 'pestana'}
+              aria-current={vista === v.id ? 'page' : undefined}
+              onClick={() => setVista(v.id)}
+            >
+              {v.nombre}
+            </button>
+          ))}
+        </nav>
       </header>
 
-      {alertas.length > 0 && (
-        <section className="alerta" aria-live="polite">
-          <strong>Reponer pronto:</strong>{' '}
-          {alertas.map((a) => `${a.nombre} (${a.stockUnidades} u.)`).join(', ')}
-        </section>
-      )}
-
-      <label className="buscador">
-        <span>Buscar producto o código de barras</span>
-        <input
-          type="search"
-          value={busqueda}
-          onChange={(e) => setBusqueda(e.target.value)}
-          placeholder="Ej.: Paceña, singani, 7771609…"
-        />
-      </label>
-
-      <table className="tabla">
-        <thead>
-          <tr>
-            <th scope="col">Producto</th>
-            <th scope="col">Unidad</th>
-            <th scope="col">Caja</th>
-            <th scope="col">Stock</th>
-          </tr>
-        </thead>
-        <tbody>
-          {productos.map((p) => {
-            const s = inventario.stockDesglosado(p.id);
-            return (
-              <tr key={p.id}>
-                <td>{p.nombre}</td>
-                <td>{formatearBs(p.precioUnidad)}</td>
-                <td>
-                  {formatearBs(p.precioCaja)} <small>×{p.unidadesPorCaja}</small>
-                </td>
-                <td>
-                  {s.cajas} cj + {s.sueltas} u.
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      {vista === 'inventario' && <VistaInventario pos={pos} />}
+      {vista === 'cobro' && (turno ? <PantallaCobro pos={pos} /> : <AperturaTurno pos={pos} />)}
+      {vista === 'cierre' && <CierreTurno pos={pos} onCerrado={() => setVista('cobro')} />}
     </main>
   );
 }

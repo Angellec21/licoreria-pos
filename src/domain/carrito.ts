@@ -177,3 +177,19 @@ export function sugerenciasDeCaja(
       return cajas > 0 && ahorro > 0 ? [{ productoId: p.id, nombre: p.nombre, cajas, ahorro }] : [];
     });
 }
+
+/**
+ * Aplica la sugerencia de ahorro: las unidades sueltas que completan cajas
+ * pasan a cajas cerradas y el resto queda suelto (13 latas → 2 packs + 1 lata).
+ */
+export function convertirACajas(carrito: Carrito, inventario: Inventario, productoId: string): Carrito {
+  const linea = carrito.find((l) => mismaLinea(l, productoId, 'unidad'));
+  if (!linea) throw new Error('El producto no está en el carrito como unidad');
+  const { unidadesPorCaja } = inventario.obtener(productoId);
+  const cajas = Math.floor(linea.cantidad / unidadesPorCaja);
+  if (unidadesPorCaja < 2 || cajas === 0) throw new Error('No alcanza para una caja completa');
+  const sueltas = linea.cantidad - cajas * unidadesPorCaja;
+  const sinUnidades = quitarDelCarrito(carrito, productoId, 'unidad');
+  const conCajas = agregarAlCarrito(sinUnidades, productoId, 'caja', cajas);
+  return sueltas > 0 ? agregarAlCarrito(conCajas, productoId, 'unidad', sueltas) : conCajas;
+}

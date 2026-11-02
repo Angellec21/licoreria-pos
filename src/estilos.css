@@ -68,3 +68,291 @@ body {
     display: none;
   }
 }
+
+/* --- Encabezado y navegación --- */
+.encabezado {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+nav {
+  display: flex;
+  gap: 0.25rem;
+}
+
+button {
+  font: inherit;
+  padding: 0.5rem 0.8rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+button:hover:not(:disabled) {
+  border-color: var(--primario);
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+button:focus-visible,
+input:focus-visible {
+  outline: 3px solid #e0a43a;
+  outline-offset: 1px;
+}
+
+.pestana.activa,
+.boton-primario {
+  background: var(--primario);
+  border-color: var(--primario);
+  color: #fff;
+}
+
+.boton-grande {
+  width: 100%;
+  font-size: 1.15rem;
+  padding: 0.8rem;
+}
+
+/* --- Paneles y formularios --- */
+.panel {
+  background: #fff;
+  border: 1px solid var(--borde);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.2rem;
+}
+
+.panel label {
+  display: grid;
+  gap: 0.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.panel input:not([type='radio']) {
+  font: inherit;
+  padding: 0.55rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+}
+
+.apertura {
+  max-width: 420px;
+}
+
+.mensaje {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  margin: 0.5rem 0;
+}
+
+.mensaje-error {
+  background: #fde8e8;
+  color: #8a1c1c;
+}
+
+.mensaje-ok {
+  background: #e6f4ea;
+  color: #1e6b34;
+}
+
+.mensaje-aviso {
+  background: var(--alerta);
+  color: #6b4e00;
+}
+
+.solo-lector {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}
+
+/* --- Pantalla de cobro --- */
+.cobro {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 1rem;
+  align-items: start;
+}
+
+.escaner {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.escaner label {
+  flex: 1;
+}
+
+.escaner button {
+  margin-bottom: 0.75rem;
+}
+
+.resultados {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem;
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+}
+
+.resultados li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem;
+  border-bottom: 1px solid var(--borde);
+}
+
+.resultados li:last-child {
+  border-bottom: 0;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.cantidad {
+  width: 4.5rem;
+}
+
+.vacio {
+  color: #6b625a;
+}
+
+.pago {
+  position: sticky;
+  top: 1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pago fieldset {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.pago label.opcion {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+.cambio {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1e6b34;
+  margin: 0;
+}
+
+.cambio.falta {
+  color: #8a1c1c;
+}
+
+.tabla tr.bajo td {
+  background: var(--alerta);
+}
+
+.resumen th {
+  font-weight: 500;
+}
+
+/* --- Ticket --- */
+.ticket {
+  max-width: 420px;
+}
+
+.ticket-papel {
+  font-family: 'Courier New', ui-monospace, monospace;
+  font-size: 0.85rem;
+  background: #fffef8;
+  border: 1px dashed var(--borde);
+  padding: 0.75rem;
+  overflow-x: auto;
+}
+
+@media (max-width: 760px) {
+  .cobro {
+    grid-template-columns: 1fr;
+  }
+
+  .pago {
+    position: static;
+  }
+}
+
+@media print {
+  body {
+    background: #fff;
+  }
+
+  .no-imprimir {
+    display: none !important;
+  }
+
+  .panel,
+  .ticket-papel {
+    border: 0;
+    padding: 0;
+  }
+}
+
+.cobro .tabla td:nth-child(3),
+.cobro .tabla td:nth-child(4) {
+  white-space: nowrap;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+.cobro > * {
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  .panel {
+    padding: 0.75rem;
+  }
+
+  .tabla th,
+  .tabla td {
+    padding: 0.4rem 0.25rem;
+  }
+
+  .cantidad {
+    width: 3.5rem;
+  }
+
+  .escaner {
+    flex-wrap: wrap;
+  }
+}

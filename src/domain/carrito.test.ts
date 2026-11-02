@@ -5,6 +5,7 @@ import {
   agregarAlCarrito,
   alternarPresentacion,
   cambiarCantidad,
+  convertirACajas,
   escanear,
   interpretarEscaneo,
   quitarDelCarrito,
@@ -127,6 +128,19 @@ describe('Carrito del mostrador', () => {
       ]);
       // El hielo no viene en caja: no hay sugerencia.
       expect(sugerenciasDeCaja(agregarAlCarrito(CARRITO_VACIO, 'hielo-3kg', 'unidad', 5), inv)).toEqual([]);
+    });
+
+    it('convierte las sueltas en cajas cerradas y deja el resto suelto', () => {
+      let c = agregarAlCarrito(CARRITO_VACIO, 'pacena-lata', 'unidad', 13);
+      c = convertirACajas(c, inv, 'pacena-lata');
+      expect(c).toEqual([
+        { productoId: 'pacena-lata', presentacion: 'caja', cantidad: 2 },
+        { productoId: 'pacena-lata', presentacion: 'unidad', cantidad: 1 },
+      ]);
+      // 2 packs × 54 + 1 lata × 10 = 118 (antes 130).
+      expect(resumirCarrito(c, inv).total).toBe(bs(118));
+      expect(() => convertirACajas(c, inv, 'pacena-lata')).toThrow(/caja completa/);
+      expect(() => convertirACajas(CARRITO_VACIO, inv, 'pacena-lata')).toThrow(/no está/);
     });
   });
 });
