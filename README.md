@@ -9,7 +9,7 @@
 
 Punto de venta para **licorerías de barrio** en Santa Cruz de la Sierra (Bolivia): caja por turnos con apertura y cierre, venta **por unidad y por caja**, control de stock y reporte diario para el dueño. Todos los montos en **bolivianos (Bs)**.
 
-> 🚧 **En desarrollo.** Ya funcionan el catálogo, el stock y la caja por turnos (lógica de negocio con pruebas). La pantalla de cobro y el reporte diario llegan en las próximas versiones.
+> 🚧 **En desarrollo.** Ya se puede atender el mostrador de punta a punta: abrir la caja, cobrar con lector de código de barras, imprimir el ticket y cerrar el turno con arqueo. El reporte diario del dueño y el guardado de datos llegan en las próximas versiones.
 
 ## El problema
 
@@ -35,12 +35,22 @@ Una licorería vende lo mismo de dos formas: la botella suelta de Paceña a Bs 1
 - **Anulaciones con motivo**, solo dentro del turno abierto, devolviendo el stock.
 - **Arqueo de cierre**: total por método de pago, costo, margen, efectivo esperado y **faltante o sobrante**.
 - **Valor del inventario** a costo de compra.
+- **Pantalla de cobro** pensada para el mostrador:
+  - **Lector de código de barras** (funciona con cualquier lector USB que "teclea" el código y Enter). Atajos: `3*código` vende 3 unidades, `c*código` una caja y `2c*código` dos cajas.
+  - Búsqueda por nombre (sin importar tildes) con botones *+ Unidad* y *+ Caja*.
+  - Carrito editable: cambiar cantidad, quitar líneas y pasar de unidad a caja.
+  - **Sugerencia de ahorro**: si el cliente lleva 13 latas sueltas, avisa que con 2 packs + 1 lata paga Bs 12 menos y lo aplica con un clic.
+  - Aviso y bloqueo del cobro si el pedido supera el stock.
+  - Cobro en efectivo con **cálculo de cambio** en vivo, QR o tarjeta.
+- **Ticket imprimible** para impresora térmica de 58 mm (o 80 mm) con NIT, cajero, detalle por unidad/caja, cambio, hora de Bolivia y la leyenda de venta prohibida a menores.
+- **Cierre de caja desde la interfaz**: resumen del turno por método de pago, margen, efectivo esperado y faltante o sobrante del cajero.
 
 ### Roadmap
 
 - [x] Catálogo, stock por unidad/caja y alertas de mínimo
 - [x] Caja por turnos, ventas, anulaciones y arqueo
-- [ ] Pantalla de cobro: carrito, lector de código de barras y ticket
+- [x] Pantalla de cobro: carrito, lector de código de barras y ticket
+- [x] Apertura y cierre de turno desde la interfaz
 - [ ] Reporte diario del dueño: ventas por hora, más vendidos, margen por categoría
 - [ ] Ingreso de mercadería desde la interfaz
 - [ ] Guardado en el navegador (los datos sobreviven a recargar la página)
@@ -65,10 +75,19 @@ src/
 ├── domain/
 │   ├── dinero.ts        # Montos en centavos y formato "Bs 1.234,50"
 │   ├── inventario.ts    # Productos, presentaciones (unidad/caja), stock y alertas
-│   └── caja.ts          # Turnos, ventas, anulaciones y arqueo
+│   ├── caja.ts          # Turnos, ventas, anulaciones y arqueo
+│   ├── carrito.ts       # Carrito inmutable, escaneo y sugerencias de caja
+│   └── ticket.ts        # Ticket de texto para impresora térmica
 ├── data/
 │   └── catalogo.ts      # Catálogo de ejemplo de una licorería de Santa Cruz
-├── App.tsx              # Interfaz (React)
+├── ui/
+│   ├── usePuntoDeVenta.ts  # Hook que conecta el dominio con React
+│   ├── AperturaTurno.tsx   # Abrir caja
+│   ├── PantallaCobro.tsx   # Escaneo, carrito y cobro
+│   ├── TicketVista.tsx     # Vista previa e impresión del ticket
+│   ├── CierreTurno.tsx     # Arqueo y cierre
+│   └── VistaInventario.tsx # Stock y alertas
+├── App.tsx              # Navegación entre secciones
 └── main.tsx
 ```
 
@@ -79,6 +98,8 @@ Decisiones de diseño:
 - **Ventas todo o nada**: primero se valida todo el pedido (sumando líneas del mismo producto) y recién después se descuenta.
 - **Reloj inyectable** en `Caja`: las pruebas controlan la fecha y hora de apertura, ventas y cierre.
 - **Encapsulamiento**: el inventario devuelve copias; nadie puede modificar el stock sin pasar por las reglas.
+- **Carrito inmutable y sin precios guardados**: cada cambio crea un carrito nuevo (React lo detecta solo) y los precios se leen del inventario al cobrar, así nunca se cobra un precio viejo.
+- **La interfaz no tiene reglas de negocio**: `usePuntoDeVenta` ejecuta las operaciones del dominio y muestra el mensaje de error que estas lanzan.
 
 ## Instalación
 
@@ -99,6 +120,16 @@ npm run dev        # http://localhost:5173
 | `npm test` | Ejecuta las pruebas (Vitest) |
 | `npm run build` | Verifica tipos y genera la versión de producción en `dist/` |
 | `npm run preview` | Sirve la versión de producción |
+
+## Uso en el mostrador
+
+1. **Abrir caja**: nombre del cajero y efectivo inicial (p. ej. Bs 200 de cambio).
+2. **Cobro**: escanee los productos o búsquelos por nombre. Con el lector, `c*` antes del código vende la caja cerrada.
+3. Elija el método de pago; en efectivo escriba lo recibido y la pantalla muestra el cambio.
+4. **Cobrar** → aparece el ticket listo para imprimir.
+5. **Cierre de caja**: cuente el efectivo del cajón; el sistema indica si la caja cuadra o si hay faltante/sobrante.
+
+> Por ahora los datos viven en memoria y se reinician al recargar la página; el guardado en el navegador está en el roadmap.
 
 ## Uso de la lógica de negocio
 
@@ -132,7 +163,7 @@ cierre.diferencia;       // 0 → la caja cuadra
 npm test
 ```
 
-28 pruebas cubren montos, inventario (ingresos, cajas y sueltas, alertas, validaciones) y caja (turnos, ventas todo o nada, cambio, anulaciones, arqueo con faltante).
+48 pruebas cubren montos (incluida la lectura de lo que escribe el cajero), inventario (ingresos, cajas y sueltas, alertas, validaciones), caja (turnos, ventas todo o nada, cambio, anulaciones, arqueo con faltante), carrito (escaneo con cantidad y caja, faltantes de stock, sugerencias de ahorro) y ticket (ancho de 58/80 mm, hora de Bolivia, ventas anuladas).
 
 ## Licencia
 
