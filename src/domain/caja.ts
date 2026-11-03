@@ -189,6 +189,11 @@ export class Caja {
     return this.ventas.filter((v) => v.turnoId === turnoId).map(clonarVenta);
   }
 
+  /** Todas las ventas registradas (incluidas las anuladas), para los reportes del dueño. */
+  todasLasVentas(): Venta[] {
+    return this.ventas.map(clonarVenta);
+  }
+
   resumenTurno(turnoId?: string): ResumenTurno {
     const turno = turnoId ? this.turnos.get(turnoId) : this.abierto;
     if (!turno) throw new Error(turnoId ? `Turno ${turnoId} no encontrado` : 'No hay turno abierto');
