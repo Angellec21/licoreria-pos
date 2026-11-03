@@ -4,13 +4,15 @@ import { AperturaTurno } from './ui/AperturaTurno.tsx';
 import { CierreTurno } from './ui/CierreTurno.tsx';
 import { PantallaCobro } from './ui/PantallaCobro.tsx';
 import { VistaInventario } from './ui/VistaInventario.tsx';
+import { VistaReporte } from './ui/VistaReporte.tsx';
 import { usePuntoDeVenta } from './ui/usePuntoDeVenta.ts';
 
-type Vista = 'cobro' | 'inventario' | 'cierre';
+type Vista = 'cobro' | 'inventario' | 'cierre' | 'reporte';
 const VISTAS: { id: Vista; nombre: string }[] = [
   { id: 'cobro', nombre: 'Cobro' },
   { id: 'inventario', nombre: 'Inventario' },
   { id: 'cierre', nombre: 'Cierre de caja' },
+  { id: 'reporte', nombre: 'Reporte del día' },
 ];
 
 export default function App() {
@@ -47,6 +49,7 @@ export default function App() {
 
       {vista === 'inventario' && <VistaInventario pos={pos} />}
       {vista === 'cobro' && (turno ? <PantallaCobro pos={pos} /> : <AperturaTurno pos={pos} />)}
+      {vista === 'reporte' && <VistaReporte pos={pos} />}
       {vista === 'cierre' && <CierreTurno pos={pos} onCerrado={() => setVista('cobro')} />}
     </main>
   );

@@ -356,3 +356,137 @@ input:focus-visible {
     flex-wrap: wrap;
   }
 }
+
+/* --- Reporte del día --- */
+.reporte-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.reporte-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.reporte-acciones select,
+.reporte-acciones button {
+  padding: 0.45rem 0.7rem;
+  border: 1px solid var(--borde);
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  color: var(--texto);
+  cursor: pointer;
+}
+
+.reporte-acciones button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin: 1rem 0;
+}
+
+.kpi {
+  border: 1px solid var(--borde);
+  border-radius: 8px;
+  padding: 0.75rem;
+  background: #fff;
+}
+
+.kpi dt {
+  font-size: 0.85rem;
+  color: #5c534a;
+}
+
+.kpi dd {
+  margin: 0.25rem 0 0;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--primario);
+}
+
+.reporte h3 {
+  margin: 1.25rem 0 0.5rem;
+  font-size: 1rem;
+}
+
+.alerta p {
+  margin: 0.2rem 0;
+}
+
+.barras {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.barras li {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr minmax(7.5rem, auto);
+  gap: 0.5rem;
+  align-items: center;
+  padding: 0.2rem 0;
+}
+
+.barra-pista {
+  height: 0.9rem;
+  background: #eee7df;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.barra {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  background: var(--primario);
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
+}
+
+.barra-valor {
+  text-align: right;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.reporte-columnas {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 0 1.5rem;
+}
+
+.reporte-columnas > * {
+  min-width: 0;
+}
+
+.capitalizar {
+  text-transform: capitalize;
+}
+
+.reporte .tabla td:not(:first-child) {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* En el reporte todas las columnas importan: no se oculta ninguna en celular. */
+@media (max-width: 600px) {
+  .reporte .tabla th:nth-child(3),
+  .reporte .tabla td:nth-child(3) {
+    display: table-cell;
+  }
+
+  .reporte .tabla {
+    font-size: 0.9rem;
+  }
+}
