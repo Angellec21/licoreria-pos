@@ -9,7 +9,7 @@
 
 Punto de venta para **licorerías de barrio** en Santa Cruz de la Sierra (Bolivia): caja por turnos con apertura y cierre, venta **por unidad y por caja**, control de stock y reporte diario para el dueño. Todos los montos en **bolivianos (Bs)**.
 
-> 🚧 **En desarrollo.** Ya se puede atender el mostrador de punta a punta: abrir la caja, cobrar con lector de código de barras, imprimir el ticket y cerrar el turno con arqueo. El reporte diario del dueño y el guardado de datos llegan en las próximas versiones.
+> 🚧 **En desarrollo.** Ya se puede atender el mostrador de punta a punta: abrir la caja, cobrar con lector de código de barras, imprimir el ticket, cerrar el turno con arqueo y ver el reporte del día. El ingreso de mercadería desde la pantalla y el guardado de datos llegan en las próximas versiones.
 
 ## El problema
 
@@ -44,6 +44,14 @@ Una licorería vende lo mismo de dos formas: la botella suelta de Paceña a Bs 1
   - Cobro en efectivo con **cálculo de cambio** en vivo, QR o tarjeta.
 - **Ticket imprimible** para impresora térmica de 58 mm (o 80 mm) con NIT, cajero, detalle por unidad/caja, cambio, hora de Bolivia y la leyenda de venta prohibida a menores.
 - **Cierre de caja desde la interfaz**: resumen del turno por método de pago, margen, efectivo esperado y faltante o sobrante del cajero.
+- **Reporte del día para el dueño** (suma todos los turnos del día):
+  - Total vendido, **margen bruto en Bs y %**, cantidad de ventas y **ticket promedio**.
+  - **Ventas por hora** con la **hora pico**, para decidir horarios y personal.
+  - **Más vendidos** (unidades, ingresos y margen) y **margen por categoría** (¿deja más la cerveza o el singani?).
+  - Cobros por método de pago y **ventas por cajero**.
+  - Aviso de **anulaciones** (cantidad y monto) y de productos bajo stock mínimo.
+  - Día comercial en hora de Bolivia: una venta a las 00:20 cuenta para el día siguiente.
+  - **Exportación a CSV** lista para Excel en español (`;` y coma decimal) e impresión.
 
 ### Roadmap
 
@@ -51,7 +59,7 @@ Una licorería vende lo mismo de dos formas: la botella suelta de Paceña a Bs 1
 - [x] Caja por turnos, ventas, anulaciones y arqueo
 - [x] Pantalla de cobro: carrito, lector de código de barras y ticket
 - [x] Apertura y cierre de turno desde la interfaz
-- [ ] Reporte diario del dueño: ventas por hora, más vendidos, margen por categoría
+- [x] Reporte diario del dueño: ventas por hora, más vendidos, margen por categoría y CSV
 - [ ] Ingreso de mercadería desde la interfaz
 - [ ] Guardado en el navegador (los datos sobreviven a recargar la página)
 - [ ] Versión 1.0.0
@@ -77,6 +85,7 @@ src/
 │   ├── inventario.ts    # Productos, presentaciones (unidad/caja), stock y alertas
 │   ├── caja.ts          # Turnos, ventas, anulaciones y arqueo
 │   ├── carrito.ts       # Carrito inmutable, escaneo y sugerencias de caja
+│   ├── reporte.ts       # Reporte diario del dueño y exportación a CSV
 │   └── ticket.ts        # Ticket de texto para impresora térmica
 ├── data/
 │   └── catalogo.ts      # Catálogo de ejemplo de una licorería de Santa Cruz
@@ -86,7 +95,8 @@ src/
 │   ├── PantallaCobro.tsx   # Escaneo, carrito y cobro
 │   ├── TicketVista.tsx     # Vista previa e impresión del ticket
 │   ├── CierreTurno.tsx     # Arqueo y cierre
-│   └── VistaInventario.tsx # Stock y alertas
+│   ├── VistaInventario.tsx # Stock y alertas
+│   └── VistaReporte.tsx    # Reporte del día del dueño
 ├── App.tsx              # Navegación entre secciones
 └── main.tsx
 ```
@@ -97,6 +107,7 @@ Decisiones de diseño:
 - **Stock siempre en unidades**: la caja es solo una forma de vender; así el stock nunca se "parte".
 - **Ventas todo o nada**: primero se valida todo el pedido (sumando líneas del mismo producto) y recién después se descuenta.
 - **Reloj inyectable** en `Caja`: las pruebas controlan la fecha y hora de apertura, ventas y cierre.
+- **Día comercial con desfase fijo UTC−4**: Bolivia no tiene horario de verano, así que el reporte agrupa por día y hora igual en el navegador del dueño que en el servidor de CI.
 - **Encapsulamiento**: el inventario devuelve copias; nadie puede modificar el stock sin pasar por las reglas.
 - **Carrito inmutable y sin precios guardados**: cada cambio crea un carrito nuevo (React lo detecta solo) y los precios se leen del inventario al cobrar, así nunca se cobra un precio viejo.
 - **La interfaz no tiene reglas de negocio**: `usePuntoDeVenta` ejecuta las operaciones del dominio y muestra el mensaje de error que estas lanzan.
@@ -128,6 +139,7 @@ npm run dev        # http://localhost:5173
 3. Elija el método de pago; en efectivo escriba lo recibido y la pantalla muestra el cambio.
 4. **Cobrar** → aparece el ticket listo para imprimir.
 5. **Cierre de caja**: cuente el efectivo del cajón; el sistema indica si la caja cuadra o si hay faltante/sobrante.
+6. **Reporte del día** (dueño): elija la fecha, revise margen, hora pico y más vendidos, y descárguelo en CSV o imprímalo.
 
 > Por ahora los datos viven en memoria y se reinician al recargar la página; el guardado en el navegador está en el roadmap.
 
@@ -155,6 +167,14 @@ formatearBs(venta.cambio); // "Bs 30,00"
 const cierre = caja.cerrarTurno(bs(370));
 cierre.efectivoEsperado; // 200 + 170 = Bs 370
 cierre.diferencia;       // 0 → la caja cuadra
+
+import { reporteDiario, reporteACsv } from './src/domain/reporte';
+
+const reporte = reporteDiario(caja.todasLasVentas(), inventario, '2026-11-03');
+reporte.margenPorcentaje;     // margen bruto del día en %
+reporte.horaPico;             // { hora: 21, cantidad: 14, total: … }
+reporte.porCategoria[0];      // la categoría que más margen dejó
+reporteACsv(reporte);         // texto CSV para Excel
 ```
 
 ## Pruebas
@@ -163,7 +183,7 @@ cierre.diferencia;       // 0 → la caja cuadra
 npm test
 ```
 
-48 pruebas cubren montos (incluida la lectura de lo que escribe el cajero), inventario (ingresos, cajas y sueltas, alertas, validaciones), caja (turnos, ventas todo o nada, cambio, anulaciones, arqueo con faltante), carrito (escaneo con cantidad y caja, faltantes de stock, sugerencias de ahorro) y ticket (ancho de 58/80 mm, hora de Bolivia, ventas anuladas).
+59 pruebas cubren montos (incluida la lectura de lo que escribe el cajero), inventario (ingresos, cajas y sueltas, alertas, validaciones), caja (turnos, ventas todo o nada, cambio, anulaciones, arqueo con faltante), carrito (escaneo con cantidad y caja, faltantes de stock, sugerencias de ahorro) ticket (ancho de 58/80 mm, hora de Bolivia, ventas anuladas) y reporte diario (margen por categoría, hora pico, cajeros, anuladas aparte, ventas de madrugada y CSV).
 
 ## Licencia
 
