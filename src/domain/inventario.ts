@@ -38,6 +38,36 @@ export type NuevoProducto = Omit<Producto, 'stockUnidades' | 'activo'> & {
   stockUnidades?: number;
 };
 
+/** Registro de una compra al distribuidor (entrada al inventario). */
+export interface IngresoMercaderia {
+  id: string;
+  fecha: string;
+  productoId: string;
+  nombre: string;
+  cajas: number;
+  unidades: number;
+  /** Total que entró al stock, en unidades. */
+  totalUnidades: number;
+  /** Costo por unidad de esta compra. */
+  costoUnidad: Centavos;
+  /** Lo que se pagó al proveedor por este ingreso. */
+  totalCosto: Centavos;
+  proveedor?: string;
+  /** Número de factura o nota de remisión del distribuidor. */
+  documento?: string;
+}
+
+export interface DatosIngreso {
+  cajas?: number;
+  unidades?: number;
+  /** Costo por unidad de esta compra; si se omite se usa el costo actual. */
+  costoUnidad?: Centavos;
+  /** Alternativa práctica: el costo de la caja tal como figura en la factura. */
+  costoCaja?: Centavos;
+  proveedor?: string;
+  documento?: string;
+}
+
 export interface StockDesglosado {
   cajas: number;
   sueltas: number;
@@ -70,6 +100,9 @@ export function precioDe(producto: Producto, presentacion: Presentacion): Centav
 
 export class Inventario {
   private readonly productos = new Map<string, Producto>();
+  private readonly ingresos: IngresoMercaderia[] = [];
+
+  constructor(private readonly reloj: () => Date = () => new Date()) {}
 
   agregar(datos: NuevoProducto): Producto {
     const id = datos.id.trim();
@@ -135,8 +168,18 @@ export class Inventario {
     return { ...p };
   }
 
-  /** Ingreso de mercadería (compra al distribuidor) en cajas y/o unidades sueltas. */
-  registrarIngreso(id: string, ingreso: { cajas?: number; unidades?: number }): Producto {
+  /**
+   * Ingreso de mercadería (compra al distribuidor) en cajas y/o unidades sueltas.
+   * Si la compra trae otro costo, el costo del producto pasa a ser el
+   * promedio ponderado entre el stock que había y lo que entra, para que el
+   * margen y el valor del inventario no se distorsionen.
+   */
+  registrarIngreso(id: string, ingreso: DatosIngreso): Producto {
+    return this.ingresar(id, ingreso).producto;
+  }
+
+  /** Igual que `registrarIngreso`, pero devuelve también el registro de la compra. */
+  ingresar(id: string, ingreso: DatosIngreso): { producto: Producto; ingreso: IngresoMercaderia } {
     const p = this.ref(id);
     const cajas = ingreso.cajas ?? 0;
     const unidades = ingreso.unidades ?? 0;
@@ -144,8 +187,63 @@ export class Inventario {
     validarEntero(unidades, 'Las unidades');
     const total = cajas * p.unidadesPorCaja + unidades;
     if (total === 0) throw new Error('El ingreso debe tener al menos una unidad');
+    if (ingreso.costoUnidad !== undefined && ingreso.costoCaja !== undefined) {
+      throw new Error('Indique el costo por unidad o por caja, no ambos');
+    }
+    let costoUnidad = p.costoUnidad;
+    if (ingreso.costoUnidad !== undefined) {
+      validarMonto(ingreso.costoUnidad, 'El costo por unidad');
+      costoUnidad = ingreso.costoUnidad;
+    } else if (ingreso.costoCaja !== undefined) {
+      validarMonto(ingreso.costoCaja, 'El costo por caja');
+      costoUnidad = Math.round(ingreso.costoCaja / p.unidadesPorCaja);
+    }
+
+    const stockPrevio = p.stockUnidades;
+    p.costoUnidad = Math.round((stockPrevio * p.costoUnidad + total * costoUnidad) / (stockPrevio + total));
     p.stockUnidades += total;
-    return { ...p };
+
+    const registro: IngresoMercaderia = {
+      id: `I-${String(this.ingresos.length + 1).padStart(5, '0')}`,
+      fecha: this.reloj().toISOString(),
+      productoId: p.id,
+      nombre: p.nombre,
+      cajas,
+      unidades,
+      totalUnidades: total,
+      costoUnidad,
+      totalCosto: costoUnidad * total,
+      ...(ingreso.proveedor?.trim() && { proveedor: ingreso.proveedor.trim() }),
+      ...(ingreso.documento?.trim() && { documento: ingreso.documento.trim() }),
+    };
+    this.ingresos.push(registro);
+    return { producto: { ...p }, ingreso: { ...registro } };
+  }
+
+  /** Compras registradas, de la más reciente a la más antigua. */
+  historialIngresos(productoId?: string): IngresoMercaderia[] {
+    return this.ingresos
+      .filter((i) => !productoId || i.productoId === productoId)
+      .map((i) => ({ ...i }))
+      .reverse();
+  }
+
+  /**
+   * Cuánto pedir de cada producto bajo el mínimo para llegar al doble del mínimo,
+   * redondeado a cajas cerradas (así se le pide al distribuidor).
+   */
+  sugerenciaDePedido(): { productoId: string; nombre: string; cajas: number; costoEstimado: Centavos }[] {
+    return this.alertasStockMinimo().map((a) => {
+      const p = this.ref(a.productoId);
+      const necesarias = p.stockMinimo * 2 - p.stockUnidades;
+      const cajas = Math.max(1, Math.ceil(necesarias / p.unidadesPorCaja));
+      return {
+        productoId: p.id,
+        nombre: p.nombre,
+        cajas,
+        costoEstimado: cajas * p.unidadesPorCaja * p.costoUnidad,
+      };
+    });
   }
 
   /** ¿Alcanza el stock para vender esta cantidad? */

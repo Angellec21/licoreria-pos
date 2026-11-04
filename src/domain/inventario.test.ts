@@ -109,3 +109,67 @@ describe('Catálogo de ejemplo', () => {
     expect(inv.alertasStockMinimo().map((a) => a.productoId)).toContain('smirnoff-750');
   });
 });
+
+describe('Ingreso de mercadería', () => {
+  let inv: Inventario;
+  beforeEach(() => {
+    inv = new Inventario(() => new Date('2026-11-04T14:30:00Z'));
+    inv.agregar(pacena); // 30 u. a Bs 11,50
+  });
+
+  it('guarda el registro de la compra con proveedor, factura y total pagado', () => {
+    const { producto, ingreso } = inv.ingresar('pacena-620', {
+      cajas: 5,
+      proveedor: '  Distribuidora El Trompillo ',
+      documento: 'F-001245',
+    });
+    expect(producto.stockUnidades).toBe(90);
+    expect(ingreso).toMatchObject({
+      id: 'I-00001',
+      fecha: '2026-11-04T14:30:00.000Z',
+      totalUnidades: 60,
+      costoUnidad: bs(11.5),
+      totalCosto: bs(690),
+      proveedor: 'Distribuidora El Trompillo',
+      documento: 'F-001245',
+    });
+    expect(inv.historialIngresos()).toHaveLength(1);
+  });
+
+  it('recalcula el costo con promedio ponderado cuando la compra trae otro precio', () => {
+    // 30 u. a 11,50 + 60 u. a 12,40 (caja de 12 a Bs 148,80) → 12,10 por unidad
+    const p = inv.registrarIngreso('pacena-620', { cajas: 5, costoCaja: bs(148.8) });
+    expect(p.costoUnidad).toBe(bs(12.1));
+    expect(inv.historialIngresos()[0]?.totalCosto).toBe(bs(744));
+  });
+
+  it('acepta costo por unidad y rechaza costos ambiguos o negativos', () => {
+    expect(inv.registrarIngreso('pacena-620', { unidades: 30, costoUnidad: bs(12.5) }).costoUnidad).toBe(bs(12));
+    expect(() =>
+      inv.registrarIngreso('pacena-620', { cajas: 1, costoUnidad: bs(1), costoCaja: bs(12) }),
+    ).toThrow(/no ambos/);
+    expect(() => inv.registrarIngreso('pacena-620', { cajas: 1, costoUnidad: -100 })).toThrow(/costo/);
+    expect(inv.historialIngresos()).toHaveLength(1);
+  });
+
+  it('con stock en cero toma directamente el costo de la compra', () => {
+    inv.descontar('pacena-620', 30, 'unidad');
+    expect(inv.registrarIngreso('pacena-620', { cajas: 1, costoUnidad: bs(13) }).costoUnidad).toBe(bs(13));
+  });
+
+  it('filtra el historial por producto y lo muestra del más reciente al más antiguo', () => {
+    inv.agregar({ ...pacena, id: 'huari', codigoBarras: '2', nombre: 'Huari 620 ml' });
+    inv.registrarIngreso('pacena-620', { cajas: 1 });
+    inv.registrarIngreso('huari', { cajas: 2 });
+    inv.registrarIngreso('pacena-620', { unidades: 6 });
+    expect(inv.historialIngresos().map((i) => i.id)).toEqual(['I-00003', 'I-00002', 'I-00001']);
+    expect(inv.historialIngresos('pacena-620')).toHaveLength(2);
+  });
+
+  it('sugiere el pedido al distribuidor en cajas cerradas', () => {
+    inv.descontar('pacena-620', 10, 'unidad'); // quedan 20, mínimo 24 → llegar a 48
+    expect(inv.sugerenciaDePedido()).toEqual([
+      { productoId: 'pacena-620', nombre: pacena.nombre, cajas: 3, costoEstimado: bs(414) },
+    ]);
+  });
+});
