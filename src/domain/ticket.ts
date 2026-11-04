@@ -77,7 +77,10 @@ export function generarTicket(venta: Venta, negocio: DatosNegocio, ancho = ANCHO
   r.push(linea);
   r.push(aLosLados(`Venta ${venta.id}`, fechaBolivia(venta.fecha), ancho));
   r.push(`Cajero: ${venta.cajero}`.slice(0, ancho));
-  if (venta.anulada) r.push(centrar('*** VENTA ANULADA ***', ancho));
+  if (venta.anulada) {
+    r.push(centrar('*** VENTA ANULADA ***', ancho));
+    if (venta.motivoAnulacion) for (const t of envolver(`Motivo: ${venta.motivoAnulacion}`, ancho)) r.push(t);
+  }
   r.push(linea);
 
   for (const l of venta.lineas) {

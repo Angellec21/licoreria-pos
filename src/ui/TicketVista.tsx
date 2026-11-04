@@ -8,11 +8,21 @@ export const NEGOCIO: DatosNegocio = {
   telefono: '70012345',
 };
 
-export function TicketVista({ venta, onCerrar }: { venta: Venta; onCerrar: () => void }) {
+export function TicketVista({
+  venta,
+  onCerrar,
+  titulo = `Venta ${venta.id} registrada`,
+  textoCerrar = 'Nueva venta',
+}: {
+  venta: Venta;
+  onCerrar: () => void;
+  titulo?: string;
+  textoCerrar?: string;
+}) {
   return (
     <section className="panel ticket" aria-labelledby="titulo-ticket">
       <h2 id="titulo-ticket" className="no-imprimir">
-        Venta {venta.id} registrada
+        {titulo}
       </h2>
       <pre className="ticket-papel">{generarTicket(venta, NEGOCIO).join('\n')}</pre>
       <div className="acciones no-imprimir">
@@ -20,7 +30,7 @@ export function TicketVista({ venta, onCerrar }: { venta: Venta; onCerrar: () =>
           Imprimir ticket
         </button>
         <button type="button" className="boton-primario" onClick={onCerrar} autoFocus>
-          Nueva venta
+          {textoCerrar}
         </button>
       </div>
     </section>

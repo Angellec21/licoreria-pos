@@ -118,6 +118,8 @@ describe('Caja por turnos', () => {
       expect(() => caja.anularVenta(v.id, ' ')).toThrow(/motivo/);
       const anulada = caja.anularVenta(v.id, 'Cliente se arrepintió');
       expect(anulada.anulada).toBe(true);
+      expect(anulada.motivoAnulacion).toBe('Cliente se arrepintió');
+      expect(anulada.fechaAnulacion).toBe(ahora.toISOString());
       expect(inv.obtener('pacena-620').stockUnidades).toBe(96);
       expect(() => caja.anularVenta(v.id, 'otra vez')).toThrow(/ya está anulada/);
     });

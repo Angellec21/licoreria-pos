@@ -33,6 +33,8 @@ export interface Venta {
   cambio: Centavos;
   anulada: boolean;
   motivoAnulacion?: string;
+  /** Momento de la anulación, para auditar anulaciones fuera de hora. */
+  fechaAnulacion?: string;
 }
 
 export interface Turno {
@@ -182,6 +184,7 @@ export class Caja {
     for (const l of venta.lineas) this.inventario.reponer(l.productoId, l.unidades);
     venta.anulada = true;
     venta.motivoAnulacion = motivo.trim();
+    venta.fechaAnulacion = this.reloj().toISOString();
     return clonarVenta(venta);
   }
 

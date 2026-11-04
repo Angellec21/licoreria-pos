@@ -59,6 +59,7 @@ describe('Ticket de venta', () => {
     expect(texto).toContain('Pago: QR');
     expect(texto).not.toContain('Cambio');
     expect(texto).toContain('VENTA ANULADA');
+    expect(texto).toContain('Motivo: Cliente desistió');
   });
 
   it('acepta papel de 80 mm y rechaza anchos demasiado chicos', () => {

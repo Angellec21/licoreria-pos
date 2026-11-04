@@ -81,6 +81,7 @@ body {
 
 nav {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.25rem;
 }
 
@@ -536,4 +537,57 @@ input:focus-visible {
   .tabla.compras td:nth-child(5) {
     display: none;
   }
+}
+
+/* --- Ventas del turno --- */
+.lista-ventas {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.lista-ventas li {
+  border: 1px solid var(--borde);
+  border-radius: 10px;
+  padding: 0.6rem 0.75rem;
+}
+
+.lista-ventas li.anulada {
+  background: #f3eeea;
+  color: #6b625a;
+}
+
+.lista-ventas li.anulada .venta-total {
+  text-decoration: line-through;
+}
+
+.venta-cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: baseline;
+}
+
+.venta-total {
+  margin-left: auto;
+}
+
+.venta-detalle {
+  margin: 0.35rem 0;
+  font-size: 0.92rem;
+}
+
+.form-anular {
+  margin: 0.5rem 0;
+  padding: 0.6rem;
+  background: #fdecec;
+  border-radius: 8px;
+}
+
+.boton-peligro {
+  background: #a3261f;
+  border-color: #a3261f;
+  color: #fff;
 }
