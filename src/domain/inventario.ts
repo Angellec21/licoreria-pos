@@ -68,6 +68,13 @@ export interface DatosIngreso {
   documento?: string;
 }
 
+/** Foto completa del inventario para guardarla y restaurarla. */
+export interface EstadoInventario {
+  /** Incluye los productos desactivados, para no perder su historial. */
+  productos: Producto[];
+  ingresos: IngresoMercaderia[];
+}
+
 export interface StockDesglosado {
   cajas: number;
   sueltas: number;
@@ -297,6 +304,50 @@ export class Inventario {
   /** Valor del inventario a costo de compra. */
   valorACosto(): Centavos {
     return this.listar().reduce((t, p) => t + p.stockUnidades * p.costoUnidad, 0);
+  }
+
+  /** Copia completa del estado (productos, incluidos los inactivos, e ingresos). */
+  exportar(): EstadoInventario {
+    return {
+      productos: [...this.productos.values()].map((p) => ({ ...p })),
+      ingresos: this.ingresos.map((i) => ({ ...i })),
+    };
+  }
+
+  /**
+   * Reconstruye un inventario guardado. Cada producto vuelve a pasar por las
+   * mismas validaciones que al darlo de alta, así un archivo alterado o
+   * dañado no puede meter stock negativo ni precios inválidos.
+   */
+  static restaurar(estado: EstadoInventario, reloj?: () => Date): Inventario {
+    if (!estado || !Array.isArray(estado.productos) || !Array.isArray(estado.ingresos)) {
+      throw new Error('El inventario guardado no tiene el formato esperado');
+    }
+    const inventario = new Inventario(reloj);
+    for (const p of estado.productos) {
+      inventario.agregar({
+        id: p.id,
+        codigoBarras: p.codigoBarras,
+        nombre: p.nombre,
+        categoria: p.categoria,
+        unidadesPorCaja: p.unidadesPorCaja,
+        precioUnidad: p.precioUnidad,
+        precioCaja: p.precioCaja,
+        costoUnidad: p.costoUnidad,
+        stockUnidades: p.stockUnidades,
+        stockMinimo: p.stockMinimo,
+      });
+      if (p.activo === false) inventario.desactivar(p.id);
+    }
+    for (const i of estado.ingresos) {
+      if (!inventario.productos.has(i.productoId)) {
+        throw new Error(`El ingreso ${i.id} es de un producto que no existe (${i.productoId})`);
+      }
+      validarEntero(i.totalUnidades, 'Las unidades del ingreso', 1);
+      validarMonto(i.costoUnidad, 'El costo del ingreso');
+      inventario.ingresos.push({ ...i });
+    }
+    return inventario;
   }
 
   /** Referencia interna (mutable); nunca se expone fuera de la clase. */

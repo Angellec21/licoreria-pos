@@ -65,6 +65,14 @@ export interface ResumenTurno {
 
 export type Reloj = () => Date;
 
+/** Foto completa de la caja (turnos y ventas) para guardarla y restaurarla. */
+export interface EstadoCaja {
+  turnos: Turno[];
+  ventas: Venta[];
+  /** Id del turno que quedó abierto, si lo hay. */
+  turnoAbierto?: string;
+}
+
 /**
  * Caja registradora por turnos: un cajero abre el turno con un monto inicial,
  * registra ventas (por unidad o por caja) y al final hace el arqueo.
@@ -242,6 +250,53 @@ export class Caja {
 
   historialTurnos(): Turno[] {
     return [...this.turnos.values()].map((t) => ({ ...t }));
+  }
+
+  exportar(): EstadoCaja {
+    return {
+      turnos: [...this.turnos.values()].map((t) => ({ ...t })),
+      ventas: this.ventas.map(clonarVenta),
+      ...(this.abierto && { turnoAbierto: this.abierto.id }),
+    };
+  }
+
+  /**
+   * Reconstruye una caja guardada sobre un inventario ya restaurado.
+   * Verifica que haya a lo sumo un turno abierto y que cada venta apunte a
+   * un turno y a productos existentes; el stock no se toca (ya viene
+   * descontado en el inventario guardado).
+   */
+  static restaurar(inventario: Inventario, estado: EstadoCaja, reloj?: Reloj): Caja {
+    if (!estado || !Array.isArray(estado.turnos) || !Array.isArray(estado.ventas)) {
+      throw new Error('La caja guardada no tiene el formato esperado');
+    }
+    const caja = new Caja(inventario, reloj);
+    for (const t of estado.turnos) {
+      if (typeof t.id !== 'string' || caja.turnos.has(t.id)) {
+        throw new Error(`Turno guardado inválido o repetido: ${String(t.id)}`);
+      }
+      validarMonto(t.montoInicial, 'El monto inicial del turno');
+      const abierto = t.estado === 'abierto';
+      if (abierto !== (t.id === estado.turnoAbierto)) {
+        throw new Error(`El estado del turno ${t.id} no coincide con el turno abierto guardado`);
+      }
+      const turno = { ...t };
+      caja.turnos.set(turno.id, turno);
+      if (abierto) caja.abierto = turno;
+      const n = Number(/^T-(\d+)$/.exec(turno.id)?.[1] ?? 0);
+      caja.secuenciaTurnos = Math.max(caja.secuenciaTurnos, n);
+    }
+    if (estado.turnoAbierto && !caja.abierto) {
+      throw new Error(`El turno abierto ${estado.turnoAbierto} no existe`);
+    }
+    estado.ventas.forEach((v, i) => {
+      if (v.numero !== i + 1) throw new Error(`Las ventas guardadas no son correlativas (venta ${v.id})`);
+      if (!caja.turnos.has(v.turnoId)) throw new Error(`La venta ${v.id} es de un turno que no existe`);
+      validarMonto(v.total, `El total de la venta ${v.id}`);
+      for (const l of v.lineas) inventario.obtener(l.productoId);
+      caja.ventas.push(clonarVenta(v));
+    });
+    return caja;
   }
 
   private exigirTurnoAbierto(): Turno {
