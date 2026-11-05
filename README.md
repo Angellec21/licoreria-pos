@@ -58,6 +58,11 @@ Una licorería vende lo mismo de dos formas: la botella suelta de Paceña a Bs 1
   - Aviso de **anulaciones** (cantidad y monto) y de productos bajo stock mínimo.
   - Día comercial en hora de Bolivia: una venta a las 00:20 cuenta para el día siguiente.
   - **Exportación a CSV** lista para Excel en español (`;` y coma decimal) e impresión.
+- **Guardado automático en el navegador**: después de cada venta, anulación, ingreso o cierre se guarda todo (inventario, turnos y ventas). Si se corta la luz o se recarga la página, el turno sigue donde quedó.
+  - El encabezado muestra la hora del último guardado y avisa si el navegador no permite guardar (modo privado).
+  - **Respaldo descargable** (`licoreria-respaldo-AAAA-MM-DD.json`) y **restauración desde archivo**, por ejemplo para pasar los datos a otra computadora.
+  - Los datos se validan al cargarlos: un archivo dañado o alterado (stock negativo, ventas sin turno, dos turnos abiertos) se rechaza sin tocar lo que hay; si el guardado del navegador está dañado se aparta una copia en vez de borrarlo.
+  - Dos pestañas abiertas en la misma computadora se mantienen sincronizadas.
 
 ### Roadmap
 
@@ -68,7 +73,8 @@ Una licorería vende lo mismo de dos formas: la botella suelta de Paceña a Bs 1
 - [x] Reporte diario del dueño: ventas por hora, más vendidos, margen por categoría y CSV
 - [x] Ingreso de mercadería con costo promedio ponderado y pedido sugerido
 - [x] Ventas del turno: anulación con motivo y copia del ticket
-- [ ] Guardado en el navegador (los datos sobreviven a recargar la página)
+- [x] Guardado en el navegador, respaldo descargable y restauración
+- [ ] Datos de ejemplo de ventas para probar los reportes
 - [ ] Versión 1.0.0
 
 ## Tecnologías
@@ -93,6 +99,7 @@ src/
 │   ├── caja.ts          # Turnos, ventas, anulaciones y arqueo
 │   ├── carrito.ts       # Carrito inmutable, escaneo y sugerencias de caja
 │   ├── reporte.ts       # Reporte diario del dueño y exportación a CSV
+│   ├── persistencia.ts  # Guardado/restauración con esquema versionado
 │   └── ticket.ts        # Ticket de texto para impresora térmica
 ├── data/
 │   └── catalogo.ts      # Catálogo de ejemplo de una licorería de Santa Cruz
@@ -105,6 +112,7 @@ src/
 │   ├── CierreTurno.tsx     # Arqueo y cierre
 │   ├── VistaInventario.tsx # Stock y alertas
 │   ├── IngresoMercaderia.tsx # Compras al distribuidor y pedido sugerido
+│   ├── RespaldoDatos.tsx   # Estado del guardado, respaldo y restauración
 │   └── VistaReporte.tsx    # Reporte del día del dueño
 ├── App.tsx              # Navegación entre secciones
 └── main.tsx
@@ -120,6 +128,8 @@ Decisiones de diseño:
 - **Día comercial con desfase fijo UTC−4**: Bolivia no tiene horario de verano, así que el reporte agrupa por día y hora igual en el navegador del dueño que en el servidor de CI.
 - **Encapsulamiento**: el inventario devuelve copias; nadie puede modificar el stock sin pasar por las reglas.
 - **Carrito inmutable y sin precios guardados**: cada cambio crea un carrito nuevo (React lo detecta solo) y los precios se leen del inventario al cobrar, así nunca se cobra un precio viejo.
+- **Guardado con esquema versionado**: el JSON lleva `esquema: 1`; si el formato cambia en una versión futura se migra en vez de perder datos. La restauración vuelve a pasar cada producto por las validaciones de alta y revisa que las ventas sean correlativas y apunten a turnos y productos existentes.
+- **Almacén inyectable**: la persistencia trabaja con una interfaz tipo `localStorage`, así las pruebas usan uno en memoria y más adelante se puede cambiar por una API sin tocar el dominio.
 - **La interfaz no tiene reglas de negocio**: `usePuntoDeVenta` ejecuta las operaciones del dominio y muestra el mensaje de error que estas lanzan.
 
 ## Instalación
@@ -204,7 +214,7 @@ inventario.sugerenciaDePedido(); // [{ nombre: 'Vodka Smirnoff 750 ml', cajas: 1
 npm test
 ```
 
-65 pruebas cubren montos (incluida la lectura de lo que escribe el cajero), inventario (cajas y sueltas, alertas, validaciones), ingresos de mercadería (costo promedio ponderado, costo por caja o unidad, historial, pedido sugerido), caja (turnos, ventas todo o nada, cambio, anulaciones con hora y motivo, arqueo con faltante), carrito (escaneo con cantidad y caja, faltantes de stock, sugerencias de ahorro), ticket (ancho de 58/80 mm, hora de Bolivia, ventas anuladas con motivo) y reporte diario (margen por categoría, hora pico, cajeros, anuladas aparte, ventas de madrugada y CSV).
+73 pruebas cubren montos (incluida la lectura de lo que escribe el cajero), inventario (cajas y sueltas, alertas, validaciones), ingresos de mercadería (costo promedio ponderado, costo por caja o unidad, historial, pedido sugerido), caja (turnos, ventas todo o nada, cambio, anulaciones con hora y motivo, arqueo con faltante), carrito (escaneo con cantidad y caja, faltantes de stock, sugerencias de ahorro), ticket (ancho de 58/80 mm, hora de Bolivia, ventas anuladas con motivo), reporte diario (margen por categoría, hora pico, cajeros, anuladas aparte, ventas de madrugada y CSV) y guardado (restauración exacta, numeración que continúa, archivos dañados o alterados y navegador sin espacio).
 
 ## Licencia
 
