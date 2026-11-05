@@ -272,7 +272,7 @@ export class Caja {
     }
     const caja = new Caja(inventario, reloj);
     for (const t of estado.turnos) {
-      if (typeof t.id !== 'string' || caja.turnos.has(t.id)) {
+      if (!t || typeof t.id !== 'string' || typeof t.cajero !== 'string' || caja.turnos.has(t.id)) {
         throw new Error(`Turno guardado inválido o repetido: ${String(t.id)}`);
       }
       validarMonto(t.montoInicial, 'El monto inicial del turno');
@@ -290,6 +290,7 @@ export class Caja {
       throw new Error(`El turno abierto ${estado.turnoAbierto} no existe`);
     }
     estado.ventas.forEach((v, i) => {
+      if (!v || !Array.isArray(v.lineas)) throw new Error(`La venta guardada N.º ${i + 1} está incompleta`);
       if (v.numero !== i + 1) throw new Error(`Las ventas guardadas no son correlativas (venta ${v.id})`);
       if (!caja.turnos.has(v.turnoId)) throw new Error(`La venta ${v.id} es de un turno que no existe`);
       validarMonto(v.total, `El total de la venta ${v.id}`);

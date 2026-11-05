@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { formatearBs } from './domain/dinero.ts';
 import { AperturaTurno } from './ui/AperturaTurno.tsx';
 import { CierreTurno } from './ui/CierreTurno.tsx';
+import { Mensaje } from './ui/Mensaje.tsx';
 import { PantallaCobro } from './ui/PantallaCobro.tsx';
+import { RespaldoDatos, textoGuardado } from './ui/RespaldoDatos.tsx';
 import { VistaInventario } from './ui/VistaInventario.tsx';
 import { VentasTurno } from './ui/VentasTurno.tsx';
 import { VistaReporte } from './ui/VistaReporte.tsx';
@@ -33,6 +35,7 @@ export default function App() {
               ? `Turno ${turno.id} · ${turno.cajero} · ${resumen?.cantidadVentas ?? 0} ventas · ${formatearBs(resumen?.total ?? 0)}`
               : 'Caja cerrada'}
           </p>
+          <p className={`estado-guardado estado-${pos.guardado.tipo}`}>{textoGuardado(pos.guardado)}</p>
         </div>
         <nav aria-label="Secciones">
           {VISTAS.map((v) => (
@@ -49,11 +52,22 @@ export default function App() {
         </nav>
       </header>
 
-      {vista === 'inventario' && <VistaInventario pos={pos} />}
-      {vista === 'cobro' && (turno ? <PantallaCobro pos={pos} /> : <AperturaTurno pos={pos} />)}
-      {vista === 'ventas' && <VentasTurno pos={pos} />}
-      {vista === 'reporte' && <VistaReporte pos={pos} />}
-      {vista === 'cierre' && <CierreTurno pos={pos} onCerrado={() => setVista('cobro')} />}
+      {pos.avisoCarga && (
+        <div className="no-imprimir">
+          <Mensaje tipo="aviso">{pos.avisoCarga}</Mensaje>
+        </div>
+      )}
+
+      {/* Al restaurar un respaldo se vuelven a montar las pantallas con el estado nuevo. */}
+      <div key={pos.generacion} className="contenido">
+        {vista === 'inventario' && <VistaInventario pos={pos} />}
+        {vista === 'cobro' && (turno ? <PantallaCobro pos={pos} /> : <AperturaTurno pos={pos} />)}
+        {vista === 'ventas' && <VentasTurno pos={pos} />}
+        {vista === 'reporte' && <VistaReporte pos={pos} />}
+        {vista === 'cierre' && <CierreTurno pos={pos} onCerrado={() => setVista('cobro')} />}
+      </div>
+      {/* Fuera del bloque anterior para que su mensaje sobreviva a la restauración. */}
+      {vista === 'inventario' && <RespaldoDatos pos={pos} />}
     </main>
   );
 }

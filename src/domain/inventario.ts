@@ -325,6 +325,9 @@ export class Inventario {
     }
     const inventario = new Inventario(reloj);
     for (const p of estado.productos) {
+      if (!p || typeof p.id !== 'string' || typeof p.nombre !== 'string' || typeof p.codigoBarras !== 'string') {
+        throw new Error('Hay un producto guardado sin id, nombre o código de barras');
+      }
       inventario.agregar({
         id: p.id,
         codigoBarras: p.codigoBarras,

@@ -90,6 +90,14 @@ describe('Guardado y restauración del punto de venta', () => {
     saltoNumeracion.caja.ventas.splice(1, 1);
     expect(() => deserializar(JSON.stringify(saltoNumeracion))).toThrow(/correlativas/);
 
+    const productoIncompleto = structuredClone(base);
+    productoIncompleto.inventario.productos[2] = { id: 'x' };
+    expect(() => deserializar(JSON.stringify(productoIncompleto))).toThrow(/sin id, nombre o código/);
+
+    const ventaSinLineas = structuredClone(base);
+    delete ventaSinLineas.caja.ventas[0].lineas;
+    expect(() => deserializar(JSON.stringify(ventaSinLineas))).toThrow(/incompleta/);
+
     const productoInexistente = structuredClone(base);
     productoInexistente.caja.ventas[0].lineas[0].productoId = 'no-existe';
     expect(() => deserializar(JSON.stringify(productoInexistente))).toThrow(/no encontrado/);
