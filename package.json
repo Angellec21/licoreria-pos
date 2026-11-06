@@ -1,7 +1,7 @@
 {
   "name": "licoreria-pos",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Punto de venta para licorería: caja por turnos, venta por unidad y por caja, control de stock y reporte diario (Bs).",
   "type": "module",
   "license": "MIT",
