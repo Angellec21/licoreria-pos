@@ -56,7 +56,7 @@ export function RespaldoDatos({ pos }: { pos: PuntoDeVenta }) {
       : 'Se borrarán el inventario, los turnos y las ventas guardados en este navegador. ¿Volver a los datos de ejemplo?';
     if (!window.confirm(aviso)) return;
     pos.restablecer();
-    setMensaje({ tipo: 'ok', texto: 'Se cargaron los datos de ejemplo.' });
+    setMensaje({ tipo: 'ok', texto: 'Se cargaron los datos de ejemplo: el catálogo y una semana de ventas para probar los reportes.' });
   }
 
   return (

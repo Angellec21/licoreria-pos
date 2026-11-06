@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { formatearBs } from '../domain/dinero.ts';
-import { fechaHoraLocal, fechasConVentas, reporteACsv, reporteDiario } from '../domain/reporte.ts';
+import { fechaHoraLocal, fechaInicialReporte, fechasConVentas, reporteACsv, reporteDiario } from '../domain/reporte.ts';
 import { Mensaje } from './Mensaje.tsx';
 import type { PuntoDeVenta } from './usePuntoDeVenta.ts';
 
@@ -22,7 +22,7 @@ export function VistaReporte({ pos }: { pos: PuntoDeVenta }) {
   const ventas = pos.caja.todasLasVentas();
   const hoy = fechaHoraLocal(new Date().toISOString()).fecha;
   const fechas = [...new Set([hoy, ...fechasConVentas(ventas)])].sort().reverse();
-  const [fecha, setFecha] = useState(hoy);
+  const [fecha, setFecha] = useState(() => fechaInicialReporte(ventas, hoy));
   const r = reporteDiario(ventas, pos.inventario, fecha);
   const maxHora = Math.max(1, ...r.porHora.map((h) => h.total));
 

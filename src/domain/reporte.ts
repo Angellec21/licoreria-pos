@@ -85,6 +85,17 @@ export function fechasConVentas(ventas: Venta[], desfaseMin = DESFASE_BOLIVIA_MI
 }
 
 /**
+ * Fecha que conviene mostrar al abrir el reporte: hoy si ya hubo ventas;
+ * si no (p. ej. a primera hora), el último día con ventas, para que el
+ * dueño vea de entrada cómo le fue ayer.
+ */
+export function fechaInicialReporte(ventas: Venta[], hoy: string, desfaseMin = DESFASE_BOLIVIA_MIN): string {
+  const fechas = fechasConVentas(ventas, desfaseMin);
+  if (fechas.includes(hoy)) return hoy;
+  return fechas.find((f) => f < hoy) ?? hoy;
+}
+
+/**
  * Reporte del día para el dueño: cuánto se vendió, cuánto se ganó,
  * a qué hora se mueve más la tienda, qué productos y categorías dejan
  * más margen y cuánto vendió cada cajero. Las ventas anuladas no suman,

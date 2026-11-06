@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { crearInventarioDeEjemplo } from '../data/catalogo.ts';
-import { Caja } from '../domain/caja.ts';
+import { crearEstadoDeEjemplo } from '../data/historialEjemplo.ts';
+import type { Caja } from '../domain/caja.ts';
 import type { Inventario } from '../domain/inventario.ts';
 import {
   type Almacen,
@@ -39,7 +39,7 @@ export interface PuntoDeVenta {
   exportarRespaldo: () => string;
   /** Reemplaza todo por un respaldo descargado antes. Lanza error si el archivo no sirve. */
   importarRespaldo: (texto: string) => void;
-  /** Borra lo guardado y vuelve al catálogo de ejemplo. */
+  /** Borra lo guardado y vuelve a los datos de ejemplo (catálogo y una semana de ventas). */
   restablecer: () => void;
 }
 
@@ -48,9 +48,9 @@ interface Estado {
   caja: Caja;
 }
 
+/** Catálogo con una semana de ventas de ejemplo, para que los reportes no arranquen vacíos. */
 function ejemplo(): Estado {
-  const inventario = crearInventarioDeEjemplo();
-  return { inventario, caja: new Caja(inventario) };
+  return crearEstadoDeEjemplo();
 }
 
 /** `localStorage` si el navegador lo permite; si no, `undefined` (se trabaja solo en memoria). */
@@ -71,7 +71,7 @@ function cargarInicial(almacen: Almacen | undefined): { estado: Estado; aviso?: 
   if (r.tipo === 'danado') {
     return {
       estado: ejemplo(),
-      aviso: `No se pudieron recuperar los datos guardados (${r.error}). Se apartó una copia y se cargó el catálogo de ejemplo.`,
+      aviso: `No se pudieron recuperar los datos guardados (${r.error}). Se apartó una copia y se cargaron los datos de ejemplo.`,
     };
   }
   return { estado: ejemplo() };

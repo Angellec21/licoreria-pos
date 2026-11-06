@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { deserializar, serializar } from '../domain/persistencia.ts';
 import { fechaHoraLocal, fechasConVentas, reporteDiario } from '../domain/reporte.ts';
 import { catalogoEjemplo } from './catalogo.ts';
-import { crearHistorialDeEjemplo } from './historialEjemplo.ts';
+import { crearEstadoDeEjemplo, crearHistorialDeEjemplo } from './historialEjemplo.ts';
 
 // Viernes 6 de noviembre de 2026, 10:00 en Santa Cruz.
 const HOY = new Date('2026-11-06T14:00:00Z');
@@ -101,5 +101,16 @@ describe('historial de ventas de ejemplo', () => {
       expect(fechasConVentas(caja.todasLasVentas())).toHaveLength(7);
       expect(inventario.listar().every((p) => p.stockUnidades >= 0)).toBe(true);
     }
+  });
+
+  it('el estado para la app registra las ventas nuevas con el reloj real', () => {
+    const ahora = new Date('2026-11-06T15:30:00Z');
+    const { caja } = crearEstadoDeEjemplo({ hoy: HOY }, () => ahora);
+    const previas = caja.todasLasVentas().length;
+    caja.abrirTurno('Carla Rojas', 20000);
+    const v = caja.vender([{ productoId: 'hielo-3kg', presentacion: 'unidad', cantidad: 1 }], { metodo: 'qr' });
+    expect(v.fecha).toBe(ahora.toISOString());
+    expect(v.numero).toBe(previas + 1);
+    expect(caja.turnoActual()?.id).toBe('T-0015');
   });
 });

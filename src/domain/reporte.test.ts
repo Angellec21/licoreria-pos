@@ -3,7 +3,7 @@ import { crearInventarioDeEjemplo } from '../data/catalogo.ts';
 import { Caja } from './caja.ts';
 import { bs } from './dinero.ts';
 import type { Inventario } from './inventario.ts';
-import { fechaHoraLocal, fechasConVentas, reporteACsv, reporteDiario } from './reporte.ts';
+import { fechaHoraLocal, fechaInicialReporte, fechasConVentas, reporteACsv, reporteDiario } from './reporte.ts';
 
 describe('fechaHoraLocal', () => {
   it('convierte a la hora de Bolivia (UTC−4) aunque cambie el día en UTC', () => {
@@ -113,6 +113,15 @@ describe('Reporte diario del dueño', () => {
     expect(r.cantidadVentas).toBe(1);
     expect(r.total).toBe(bs(20));
     expect(fechasConVentas(caja.todasLasVentas())).toEqual(['2026-11-04', '2026-11-03']);
+  });
+
+  it('al abrir el reporte muestra hoy si hubo ventas; si no, el último día con ventas', () => {
+    const ventas = caja.todasLasVentas();
+    expect(fechaInicialReporte(ventas, '2026-11-04')).toBe('2026-11-04');
+    expect(fechaInicialReporte(ventas, '2026-11-06')).toBe('2026-11-04');
+    expect(fechaInicialReporte([], '2026-11-06')).toBe('2026-11-06');
+    // Con el reloj del navegador atrasado no se elige un día "futuro".
+    expect(fechaInicialReporte(ventas, '2026-11-01')).toBe('2026-11-01');
   });
 
   it('un día sin ventas da un reporte en cero y sin hora pico', () => {

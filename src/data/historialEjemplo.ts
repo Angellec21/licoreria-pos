@@ -1,6 +1,7 @@
 import { Caja, type ItemVenta, type MetodoPago } from '../domain/caja.ts';
 import { type Centavos, bs } from '../domain/dinero.ts';
 import { type Categoria, Inventario, type Presentacion } from '../domain/inventario.ts';
+import { deserializar, serializar } from '../domain/persistencia.ts';
 import { DESFASE_BOLIVIA_MIN, fechaHoraLocal } from '../domain/reporte.ts';
 import { catalogoEjemplo } from './catalogo.ts';
 
@@ -193,6 +194,20 @@ export function crearHistorialDeEjemplo(opciones: OpcionesHistorial = {}): Histo
 /** Hora de cierre del turno; el turno de la noche cierra a las 23:59 del mismo día. */
 function cierreDe(fecha: string, t: TurnoPlantilla): Date {
   return t.hasta >= 24 ? instanteLocal(fecha, 23, 59) : instanteLocal(fecha, t.hasta, 0);
+}
+
+/**
+ * Historial de ejemplo listo para usar en la app: se pasa por el mismo
+ * guardado y restauración que los datos reales, así queda validado y las
+ * ventas nuevas usan el reloj real en vez del reloj simulado del historial.
+ */
+export function crearEstadoDeEjemplo(
+  opciones: OpcionesHistorial = {},
+  reloj: () => Date = () => new Date(),
+): HistorialEjemplo {
+  const h = crearHistorialDeEjemplo(opciones);
+  const r = deserializar(serializar(h.inventario, h.caja, opciones.hoy), reloj);
+  return { inventario: r.inventario, caja: r.caja };
 }
 
 /** Un pedido típico: 1 a 3 productos, con más cerveza y alguna caja cerrada. */
